@@ -1,0 +1,126 @@
+ [TestClass]
+    public class SPMeta2Test
+    {
+        private readonly List<Guid> Guid = new List<Guid>();
+        private readonly List<string> InternalNameFields = new List<string>();
+
+        public SPMeta2Test()
+        {
+            var siteModel = new IntranetModel.Models.approveEngineSiteModel();
+            var site = siteModel.GetFieldsAndContentTypesModel()
+                .ChildModels
+                .ToList();
+
+            foreach (var item in site)
+            {
+                if (item.Value is FieldDefinition)
+                {
+                    var obj = (FieldDefinition)item.Value;
+                    Guid.Add(obj.Id);
+                    InternalNameFields.Add(obj.InternalName);
+                }
+
+                if (item.Value is ContentTypeDefinition)
+                {
+                    var obj = (ContentTypeDefinition)item.Value;
+                    Guid.Add(obj.Id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// InternalName вхождение правильных элементов
+        /// </summary>
+        [TestMethod]
+        public void InernalNameCharLatin()
+        {
+            /*
+             * Первый фильтр маленькие латинские буквы
+             * Второй фильтр БОЛЬШИЕ латинские буквы
+             * Нижний подчеркивание 
+             * Цыфры
+             */
+            var notLatinChar = InternalNameFields
+                .Where(str => str
+                .Where(ch => (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90) || (ch == 95) || (ch >= 48 && ch <= 57)).Count() != str.Count())
+                .ToList();
+
+            if (notLatinChar.Count() > 0)
+            {
+                foreach (var str in notLatinChar)
+                {
+                    Debug.WriteLine("Строка " + str);
+
+                    foreach (var ch in str)
+                    {
+                        Debug.WriteLine("Буква " + ch + " Символ в кодировке " + (int)ch);
+                    }
+                }
+                Assert.Fail("В internalName содержится еще что то помимо латыни! " + notLatinChar);
+            }
+
+            Assert.IsTrue(true);
+        }
+
+        /// <summary>
+        /// Поиск дубликатов InternalName
+        /// </summary>
+        [TestMethod]
+        public void DuplicateInternalName()
+        {
+            var duplicateInternamlName = InternalNameFields
+               .GroupBy(x => x)
+               .Where(x => x.Count() > 1)
+               .Select(x => x.Key)
+               .ToList()
+               .Where(q => q.Count() > 0)
+               ;
+
+            if (duplicateInternamlName.Count() > 0)
+            {
+                foreach (var item in duplicateInternamlName)
+                {
+                    Debug.WriteLine(item.Trim());
+                }
+                Assert.Fail("Где то задублированные InternalName!");
+            }
+            Assert.IsTrue(true);
+        }
+
+        /// <summary>
+        /// Проверка на длинну InternalName
+        /// </summary>
+        [TestMethod]
+        public void LenInternalName()
+        {
+            var len = InternalNameFields.Where(s => s.Count() > 32).ToList();
+            if (len.Count() != 0)
+            {
+                foreach (var item in len)
+                {
+                    Debug.WriteLine(item);
+                }
+                Assert.Fail("Длина InternalName больше 32 символов! " + len);
+            }
+            Assert.IsTrue(true);
+        }
+
+        /// <summary>
+        ////Поиск дубликатов GUID
+        /// </summary>
+        [TestMethod]
+        public void GuidDuplicateTest()
+        {
+            var duplicateGuid = Guid.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => x.Key).ToList();
+            if (duplicateGuid.Count() > 0)
+            {
+                foreach (var item in duplicateGuid)
+                {
+                    Debug.WriteLine(item);
+                }
+                Assert.Fail("Где то задублированные GUID!");
+            }
+
+            Assert.IsTrue(true);
+        }
+    }
